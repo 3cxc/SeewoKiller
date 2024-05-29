@@ -2,7 +2,9 @@ package com.github.seewokiller.system;
 
 import com.github.basiclib.Logger.Logger;
 import com.github.basiclib.Logger.LoggerBase;
-import com.github.seewokiller.natives.Win32ApiCalls;
+import com.github.seewokiller.natives.WebLinkCalls;
+import com.github.seewokiller.natives.Win32Api;
+import com.github.seewokiller.natives.SeewoCoreCalls;
 import com.sun.jna.WString;
 
 import java.util.Vector;
@@ -18,8 +20,13 @@ public class SystemMonitor implements Runnable{
         Logger logger = new LoggerBase();
 
         WString processName = new WString("EasiNote.exe");
+        //加载SeewoCore.dll
+        SeewoCoreCalls dll = (SeewoCoreCalls) Win32Api.loadLibrary("SeewoCore", SeewoCoreCalls.class);
+        //加载WebLink.dll
+        WebLinkCalls web = (WebLinkCalls) Win32Api.loadLibrary("WebLink", WebLinkCalls.class);
+
         // 获取并存储所有同名进程的ID
-        Vector<Integer> processIDs = Win32ApiCalls.LIBRARY.TraversalProcesses(processName);
+        Vector<Integer> processIDs = dll.TraversalProcesses(processName);
 
         try {
             while (Thread.currentThread().isInterrupted()) {
@@ -33,20 +40,20 @@ public class SystemMonitor implements Runnable{
                 boolean allProcessesWithoutWindow = true;
                 for (int id : processIDs) {
                     sleep(3000);
-                    if (Win32ApiCalls.LIBRARY.HasWindow(id) || Win32ApiCalls.LIBRARY.IsProcessForeground(id)) {
+                    if (dll.HasWindow(id) || dll.IsProcessForeground(id)) {
                         allProcessesWithoutWindow = false;
                         logger.info("监视的进程 "+ processName +" 正在运行且未退出窗口，继续监测.");
                         break;
                     }
                 }
 
-                boolean iskill = false;
+                boolean isKill = false;
 
                 if (allProcessesWithoutWindow) {
                     for (int id : processIDs) {
-                        if (Win32ApiCalls.LIBRARY.KillProcess(id)) {
+                        if (dll.KillProcess(id)) {
                             logger.info("PID为 "+ id +" 的进程已被杀死。");
-                            iskill = true;
+                            isKill = true;
                         }
                         else {
                             logger.error("无法杀死PID为 "+ id +" 的进程，可能是无权限原因.");
@@ -54,12 +61,12 @@ public class SystemMonitor implements Runnable{
                     }
                 }
 
-                if (iskill) OpenBrowser("https://www.bilibili.com/video/BV1he4y1w7wB/?spm_id_from=333.337.search-card.all.click");
+                if (isKill) web.OpenBrowser(new WString("https://www.bilibili.com/video/BV1he4y1w7wB/?spm_id_from=333.337.search-card.all.click"));
 
                 sleep(1000);
             }
         }catch (InterruptedException e){
-
+            logger.info(Thread.interrupted());
         }
     }
 }
