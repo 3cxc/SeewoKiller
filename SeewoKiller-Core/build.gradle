@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'java-library'
+}
+
+group = 'com.github.seewokiller'
+version = '1.1'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    compileOnly('com.sun.jna:jna:3.0.9')
+    //添加/lib下的所有jar
+    implementation fileTree(dir: 'lib', includes: ['*.jar'])
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    archiveFileName = 'SeewoKiller-Core.jar'
+    manifest {
+        attributes 'Main-Class': "com.github.seewokiller.Main"
+    }
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
